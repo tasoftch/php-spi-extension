@@ -1,0 +1,19 @@
+{
+  "name": "tasoft/php-spi-extension",
+  "description": "A simple SPI extension for PHP to read from and write to the spi bus.",
+  "license": "MIT",
+  "authors": [
+	{
+	  "name": "thomas",
+	  "email": "thomas@tasoft.ch"
+	}
+  ],
+  "require": {
+	"php" : ">=7.2"
+  },
+  "autoload": {
+	"psr-4": {
+	  "TASoft\\Bus\\" : "PHP"
+	}
+  }
+}
