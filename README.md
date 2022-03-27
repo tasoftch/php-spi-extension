@@ -32,7 +32,7 @@ The extension adds the following functions to the global scope:
     Reads data from the spi bus.
 1. ```spi_write```  
     Writes data to the spi bus  
-1. ```spi_write_read```  
+1. ```spi_transfer```  
        Reads and writes data to and from the spi bus in duplex mode
 1. ```spi_close```  
     Closes the bus.
