@@ -49,6 +49,7 @@ The extension adds the following functions to the global scope:
 I've tested with a Raspberry Pi Model B 3+ and the JOY-IT RFID-RC522.
 ```php
 <?php
+// Coming soon
 ?>
 ```
 
