@@ -46,17 +46,20 @@ The extension adds the following functions to the global scope:
     Reads the delay
     
 ### Example
-I've tested with a Raspberry Pi Model B 3+ and the JOY-IT RFID-RC522.
 ```php
 <?php
-// Coming soon
+use TASoft\Bus\SPI;
+
+$dev = new SPI(0); // /dev/spidev0.0
+$backData = $dev->transfer([0x0, 0xFF]);
+print_r($backData);
 ?>
 ```
 
 # Usage PHP
 The package also contains a php wrapper class for spi.
 ````bin
-$ composer require tasoft/php-i2c-extension
+$ composer require tasoft/php-spi-extension
 ````
 Please note that the composer installation does not compile the extension!  
 For compilation use the installation guide described before.
