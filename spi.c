@@ -27,7 +27,7 @@ zend_function_entry spi_php_functions[] = {
 	PHP_FE(spi_get_speed, NULL)
 	PHP_FE(spi_get_delay, NULL)
 	PHP_FE(spi_get_bits_per_word, NULL)
-
+    
     {NULL, NULL, NULL}
 };
 
@@ -67,28 +67,34 @@ static void _spi_resource_destructor(zend_resource *rsrc)
 }
 
 PHP_FUNCTION(spi_open) {
-    char *devPath = NULL;
+    char *string = "/dev/spidev0.10";
+    size_t str_len = strlen(string)-1;
+    
     uint32_t mode = 0;
     uint8_t bits = 8;
     uint32_t speed = 500000;
     uint16_t delay = 0;
     
-    size_t length = 0;
+    ZEND_PARSE_PARAMETERS_START(2, 5)
+        Z_PARAM_STRING(string, str_len)
+        Z_PARAM_LONG(mode)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(speed)
+        Z_PARAM_LONG(bits)
+        Z_PARAM_LONG(delay)
+    ZEND_PARSE_PARAMETERS_END();
+ 
+	int fd = open(string, O_RDWR);
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sl|lll", &devPath, &length, &mode, &speed, &bits, &delay) != SUCCESS) {
-        RETURN_BOOL(0);
-      }
-
-	int fd = open(devPath, O_RDWR);
 	if (fd < 0) {
 		RETURN_BOOL(0);
 	}
-
+   
 	struct spi_bus *_fd = calloc(sizeof(struct spi_bus), 1);
 	_fd->fd = fd;
 	_fd->state = 1;
-    
-    
+
+
     int ret = ioctl(fd, SPI_IOC_WR_MODE32, &mode);
     if (ret == -1) {
         zend_error(E_WARNING, "Can not set mode");
@@ -125,7 +131,7 @@ PHP_FUNCTION(spi_open) {
         close(fd);
         RETURN_BOOL(0);
     }
-
+    
     ret = ioctl(fd, SPI_IOC_RD_BITS_PER_WORD, &bits);
     if (ret == -1) {
         zend_error(E_WARNING, "Can not set bits per word");
@@ -134,7 +140,8 @@ PHP_FUNCTION(spi_open) {
     }
     _fd->bits = bits;
     _fd->delay = delay;
-
+    _fd->state = 1;
+    
 	int res_num = zend_register_list_destructors_ex(_spi_resource_destructor, NULL, "spi_dev", 0x01);
 	zend_resource *my_res  = zend_register_resource((void *)_fd, res_num);
 	RETURN_RES(my_res);
@@ -155,7 +162,7 @@ PHP_FUNCTION(spi_get_mode) {
 
 PHP_FUNCTION(spi_get_speed) {
     zval *rval;
-
+    
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &rval) != SUCCESS) {
        RETURN_BOOL(0);
     }
@@ -210,20 +217,26 @@ PHP_FUNCTION(spi_close) {
 int transfer(struct spi_bus bus, char *tx, char *rx, int len) {
     int ret;
     int out_fd;
-    struct spi_ioc_transfer tr = {
-        .tx_buf = (unsigned long)tx,
-        .rx_buf = (unsigned long)rx,
-        .len = len,
-        .delay_usecs = bus.delay,
-        .speed_hz = bus.speed,
-        .bits_per_word = bus.speed,
-    };
+    struct spi_ioc_transfer spi;
     
-    ret = ioctl(bus.fd, SPI_IOC_MESSAGE(1), &tr);
-    if (ret < 1) {
+    memset (&spi, 0, sizeof (spi)) ;
+    
+    
+   spi.tx_buf        = (unsigned long)tx ;
+   spi.rx_buf        = (unsigned long)rx ;
+   spi.len           = len;
+   spi.speed_hz      = bus.speed;
+   spi.bits_per_word = bus.bits;
+   spi.cs_change     = 0;
+   spi.delay_usecs   = bus.delay;
+
+    ret = ioctl(bus.fd, SPI_IOC_MESSAGE(1), &spi);
+    
+    if (ret < 0) {
         zend_error(E_WARNING, "Device was already closed");
         return 0;
     }
+    
     return 1;
 }
 
@@ -272,7 +285,7 @@ PHP_FUNCTION(spi_write) {
 	}
 	zend_resource *resource = Z_REF_P(rval);
 	struct spi_bus fd = *((struct spi_bus *)resource->ptr);
-
+    
     if(fd.state < 1) {
         zend_error(E_WARNING, "Device was already closed");
         RETURN_BOOL(0);
@@ -325,7 +338,9 @@ PHP_FUNCTION(spi_transfer) {
     }
     zend_resource *resource = Z_REF_P(rval);
     struct spi_bus fd = *((struct spi_bus *)resource->ptr);
-
+    
+    
+    
     if(fd.state < 1) {
         zend_error(E_WARNING, "Device was already closed");
         RETURN_BOOL(0);
@@ -337,6 +352,7 @@ PHP_FUNCTION(spi_transfer) {
     } else
         array_count = 0;
 
+    
     uint8_t buffer[array_count];
     int bufCount = 0;
 
@@ -357,6 +373,8 @@ PHP_FUNCTION(spi_transfer) {
             }
         }
     }
+    
+    
 
     uint8_t rx[array_count];
     
@@ -365,11 +383,11 @@ PHP_FUNCTION(spi_transfer) {
         RETURN_BOOL(0);
     }
     
-    zend_array *ret = zend_new_array( array_count );
-
+    zend_array *ret = zend_new_array(array_count);
+    RETVAL_ARR(ret);
+    
         for(int e=0;e<array_count;e++) {
-            add_next_index_long(ret, rx[e]);
+            
+            add_next_index_long(return_value, rx[e]);
         }
-
-        RETVAL_ARR(ret);
 }
