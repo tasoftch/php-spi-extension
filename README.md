@@ -55,18 +55,3 @@ $backData = $dev->transfer([0x0, 0xFF]);
 print_r($backData);
 ?>
 ```
-
-# Usage PHP
-The package also contains a php wrapper class for spi.
-````bin
-$ composer require tasoft/php-spi-extension
-````
-Please note that the composer installation does not compile the extension!  
-For compilation use the installation guide described before.
-
-Now the same example can be rewritten as:
-
-```php
-<?php
-
-```
